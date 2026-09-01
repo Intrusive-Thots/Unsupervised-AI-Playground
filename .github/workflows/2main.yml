@@ -1,29 +1,52 @@
-name: Auto-Combine and Merge PRs
+name: Auto Merge PRs and Sync Branches
+
 on:
-  schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight
-  workflow_dispatch: # Allows manual trigger
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - 'feature/**'
+      - 'dev/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  combine-and-merge:
+  # 1. Automatically merge open Pull Requests
+  merge-prs:
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
+    steps:
+      - name: Enable Auto-Merge
+        run: gh pr merge "$PR_URL" --auto --squash --repo "$GITHUB_REPOSITORY"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 2. Automatically merge source branches directly into target branch
+  merge-branches:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Combine Pull Requests
-        id: combine
-        uses: github/combine-prs@v5.1.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          combine_branch_name: auto-combined-branch # This will look for all open PRs to combine
-          select_label: ""
-      - name: Automerge Combined PR
-        if: steps.combine.outputs.pr_number != ''
-        uses: pascalgn/automerge-action@v0.16.2
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-          MERGE_METHOD: "merge"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge Branch into Main
+        run: |
+          git checkout main
+          git merge --no-ff "${{ github.ref_name }}" -m "Auto-merge ${{ github.ref_name }} into main"
+          git push origin main
