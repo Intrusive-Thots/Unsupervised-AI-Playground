@@ -1,4 +1,4 @@
-name: Auto Merge PRs and Sync Branches
+name: Auto Merge P.Rs and Sync Branches
 
 on:
   pull_request_target:
@@ -20,11 +20,11 @@ permissions:
 jobs:
   # 1. Automatically merge open Pull Requests
   merge-prs:
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'pull_request_target' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Enable Auto-Merge
-        run: gh pr merge "$PR_URL" --auto --squash --repo "$GITHUB_REPOSITORY"
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
