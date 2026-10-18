@@ -3,9 +3,102 @@
     <HistoryChatItem
       v-for="key in reversedConversationKeys"
       :key="key"
-      :conversationKey="key"
-      @select="selectConversation(key)"
-    />
+      class="flex flex-col items-center justify-between rounded-lg px-3 py-1 transition cursor-pointer border-2"
+      :class="
+        conversations.activeKey === key
+          ? 'border-primary bg-muted hover:bg-muted/80'
+          : 'border-transparent bg-muted hover:bg-muted/80'
+      "
+      @click="selectConversation(key)"
+    >
+      <div class="flex items-center justify-between w-full">
+        <span class="truncate text-sm text-foreground">
+          {{ conversationTitle(key) }}
+        </span>
+        <DropdownMenu
+          :open="menuOpenKey === key"
+          @update:open="(open) => onMenuOpenChange(key, open)"
+        >
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop>
+              <span class="svg-icon i-dots-vertical w-4 h-4"></span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            class="w-28"
+            :onCloseAutoFocus="
+              (ev) => {
+                ev.preventDefault?.()
+              }
+            "
+          >
+            <Dialog
+              v-model:open="renameDialogOpen"
+              @update:open="
+                (open) => {
+                  if (!open) menuOpenKey = null
+                }
+              "
+            >
+              <DialogTrigger asChild>
+                <DropdownMenuItem
+                  @select="
+                    (e: Event) => {
+                      e.preventDefault()
+                      openRenameDialog(key)
+                    }
+                  "
+                >
+                  {{ languages.COM_RENAME || 'Rename' }}
+                </DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{{ languages.COM_RENAME_CONVERSATION || 'Rename conversation' }}</DialogTitle>
+                  <DialogDescription>{{ languages.COM_RENAME_CONVERSATION_DESC || 'Set a new title for this conversation.' }}</DialogDescription>
+                </DialogHeader>
+                <div class="mt-2">
+                  <Input
+                    autofocus
+                    type="text"
+                    :placeholder="languages.COM_ENTER_TITLE || 'Enter title'"
+                    v-model="renameTitle"
+                    @keydown.enter.prevent="saveRename"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" @click="cancelRename">{{ languages.COM_CANCEL || 'Cancel' }}</Button>
+                  <Button :disabled="!renameTitle.trim()" @click="saveRename">{{ languages.COM_SAVE || 'Save' }}</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem @select="(e: Event) => e.preventDefault()">
+                  {{ languages.COM_DELETE || 'Delete' }}
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{{ languages.COM_DELETE_CONVERSATION_QUESTION || 'Delete conversation?' }}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {{ languages.COM_DELETE_CONVERSATION_EXPLANATION || 'This will permanently remove this conversation and its messages.' }}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{{ languages.COM_CANCEL || 'Cancel' }}</AlertDialogCancel>
+                  <AlertDialogAction @click="() => conversations.deleteConversation(key)">
+                    {{ languages.COM_DELETE || 'Delete' }}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <ThumbnailPreviewStrip :items="images(conversations.conversationList[key])" />
+    </div>
   </div>
 </template>
 
@@ -13,8 +106,11 @@
 import { computed } from 'vue'
 import HistoryChatItem from './HistoryChatItem.vue'
 import { useConversations } from '@/assets/js/store/conversations'
+import { AipgUiMessage } from '@/assets/js/store/openAiCompatibleChat'
+import { useI18N } from '@/assets/js/store/i18n'
 
 const conversations = useConversations()
+const { state: languages } = useI18N()
 const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
@@ -25,6 +121,63 @@ const reversedConversationKeys = computed(() => {
   console.log('Reversed conversation keys:', list, keys)
   return keys
 })
+
+const conversationTitle = (key: string) => {
+  const conversation = conversations.conversationList[key]
+  if (!conversation || conversation.length === 0) {
+    return languages.ANSWER_NEW_CONVERSATION || 'New Conversation'
+  }
+  if (conversation[0].metadata?.conversationTitle) {
+    return conversation[0].metadata.conversationTitle
+  }
+  const firstMessage = conversation[0]
+
+  // todo: can be deleted eventually
+  if (firstMessage.parts === undefined) {
+    conversations.deleteConversation(key)
+  }
+
+  const titlePart = firstMessage.parts?.find((part) => part.type === 'text')
+  return titlePart ? titlePart.text.substring(0, 50) : (languages.ANSWER_NEW_CONVERSATION || 'New Conversation')
+}
+
+const menuOpenKey = ref<string | null>(null)
+
+function onMenuOpenChange(conversationKey: string, open: boolean) {
+  menuOpenKey.value = open
+    ? conversationKey
+    : menuOpenKey.value === conversationKey
+      ? null
+      : menuOpenKey.value
+}
+
+// Rename dialog state
+const renameDialogOpen = ref(false)
+const renameKey = ref<string | null>(null)
+const renameTitle = ref('')
+
+function openRenameDialog(conversationKey: string) {
+  renameKey.value = conversationKey
+  const existingTitle = conversationTitle(conversationKey)
+  renameTitle.value = existingTitle ?? ''
+  renameDialogOpen.value = true
+}
+
+function cancelRename() {
+  renameDialogOpen.value = false
+  renameKey.value = null
+  menuOpenKey.value = null
+}
+
+function saveRename() {
+  if (!renameKey.value) return
+  const newTitle = renameTitle.value.trim()
+  if (newTitle.length === 0) return
+  conversations.renameConversationTitle(renameKey.value, newTitle)
+  renameDialogOpen.value = false
+  menuOpenKey.value = null
+  renameKey.value = null
+}
 
 const selectConversation = (key: string) => {
   conversations.activeKey = key
