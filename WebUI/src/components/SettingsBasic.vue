@@ -161,15 +161,17 @@
     <div class="flex flex-col pt-5 gap-2">
       <button
         @click="globalSetup.loadingState = 'manageInstallations'"
-        class="bg-primary hover:bg-primary/80 px-3 py-1.5 rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        class="bg-primary hover:bg-primary/80 px-3 py-1.5 rounded-lg text-sm"
+        :aria-label="languages.SETTINGS_MODEL_MANAGE_BACKEND"
       >
         {{ languages.SETTINGS_MODEL_MANAGE_BACKEND }}
       </button>
       <button
         @click="isTemplateEditorVisible = !isTemplateEditorVisible"
-        class="bg-secondary hover:bg-secondary/80 px-3 py-1.5 rounded-lg text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        class="bg-secondary hover:bg-secondary/80 px-3 py-1.5 rounded-lg text-sm text-foreground"
+        :aria-label="languages.SETTINGS_OPEN_PIPELINE_EDITOR || 'Open Pipeline Template Editor'"
       >
-        Open Pipeline Template Editor
+        {{ languages.SETTINGS_OPEN_PIPELINE_EDITOR || 'Open Pipeline Template Editor' }}
       </button>
     </div>
 
