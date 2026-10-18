@@ -550,21 +550,12 @@ const EMPTY_MEDIA_ARRAY: MediaItem[] = []
 
 // Helper functions for tool rendering
 
-// Static empty array to avoid returning new array references and causing render thrashing
-const EMPTY_MEDIA_ARRAY: MediaItem[] = []
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const toolImagesCache = new Map<string, { lastState: string, lastOutput: any, cachedImages: MediaItem[] }>()
-
-// Clear cache when activeConversation completely changes (e.g. switching chats)
-watch(() => activeConversation.value, (newVal, oldVal) => {
-  if (newVal !== oldVal) {
-     toolImagesCache.clear()
-  }
-})
+// ⚡ Bolt Performance Optimization: Return a static empty array instead of a new array reference `[]`
+// Why: `getToolImages` is called inside v-for loops for Chat workflow results. Returning a new `[]` reference causes child components to re-render on every tick.
+const EMPTY_MEDIA_ITEMS: MediaItem[] = []
 
 function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
-  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ITEM_ARRAY
+  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ITEMS
   const toolCallId = part.toolCallId
   const progress = toolProgressMap[toolCallId]
 
@@ -575,11 +566,11 @@ function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
 
   // Otherwise, use output images if available and memoize the mapped array to prevent render thrashing
   if (part.state === 'output-available') {
-    if (!part.output) return EMPTY_MEDIA_ITEM_ARRAY
+    if (!part.output) return EMPTY_MEDIA_ITEMS
     return part.output.images.map((img) => ({ ...img, state: 'done' as const }))
   }
 
-  return EMPTY_MEDIA_ITEM_ARRAY
+  return EMPTY_MEDIA_ITEMS
 }
 
 function getToolProcessing(part: ToolUIPart<AipgTools>): boolean {
