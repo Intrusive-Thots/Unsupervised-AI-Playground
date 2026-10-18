@@ -502,13 +502,13 @@ function copyText(text: string) {
     .catch((e) => console.error('Error while copying text to clipboard', e))
 }
 
-// ⚡ Bolt Performance Optimization: Return a static empty array to prevent Vue reference thrashing and child component re-renders.
-// Why: When this helper returns a new `[]` inside a v-for loop during LLM streaming, it forces child components to re-render.
-const EMPTY_ITEMS: MediaItem[] = []
+// ⚡ Bolt Performance Optimization: Use static array instead of inline []
+// Why: Prevents Vue from detecting a new array reference and unnecessarily re-rendering child components in v-for loops during streaming updates.
+const EMPTY_MEDIA_ARRAY: MediaItem[] = []
 
 // Helper functions for tool rendering
 function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
-  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_ITEMS
+  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ARRAY
   const toolCallId = part.toolCallId
   const progress = toolProgressMap[toolCallId]
 
@@ -519,11 +519,11 @@ function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
 
   // Otherwise, use output images if available
   if (part.state === 'output-available') {
-    if (!part.output) return EMPTY_ITEMS
+    if (!part.output) return EMPTY_MEDIA_ARRAY
     return part.output.images.map((img) => ({ ...img, state: 'done' as const }))
   }
 
-  return EMPTY_ITEMS
+  return EMPTY_MEDIA_ARRAY
 }
 
 function getToolProcessing(part: ToolUIPart<AipgTools>): boolean {
