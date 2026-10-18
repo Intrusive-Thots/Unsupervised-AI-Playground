@@ -14,7 +14,13 @@
       </span>
       <DropdownMenu :open="menuOpenKey === conversationKey" @update:open="onMenuOpenChange">
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop :aria-label="languages?.COM_OPTIONS || 'Options'">
+          <Button
+            aria-label="Conversation options"
+            variant="ghost"
+            size="icon"
+            class="h-6 w-6"
+            @click.stop
+          >
             <span class="svg-icon i-dots-vertical w-4 h-4"></span>
           </Button>
         </DropdownMenuTrigger>

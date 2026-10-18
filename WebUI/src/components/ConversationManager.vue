@@ -7,17 +7,9 @@
     <div class="flex justify-end">
       <button
         @click="isHistoryVisible = !isHistoryVisible"
-        class="m-2 flex text-foreground rounded focus-visible:ring-2 focus:outline-none focus-visible:ring-primary"
-        :aria-label="
-          isHistoryVisible
-            ? languages.COM_CLOSE || 'Close History'
-            : languages.COM_SHOW_HISTORY || 'Show History'
-        "
-        :title="
-          isHistoryVisible
-            ? languages.COM_CLOSE || 'Close History'
-            : languages.COM_SHOW_HISTORY || 'Show History'
-        "
+        class="m-2 flex text-foreground"
+        :aria-label="isHistoryVisible ? 'Collapse history' : 'Expand history'"
+        :title="isHistoryVisible ? 'Collapse history' : 'Expand history'"
       >
         <img
           v-if="!isHistoryVisible"
@@ -71,6 +63,7 @@
               >
                 <DropdownMenuTrigger asChild>
                   <Button
+                    aria-label="Conversation options"
                     variant="ghost"
                     size="icon"
                     :class="[
