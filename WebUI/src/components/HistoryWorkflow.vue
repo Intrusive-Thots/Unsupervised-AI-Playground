@@ -245,17 +245,18 @@ const imagesByDay = computed(() => {
     groups.get(dateKey)!.images.push(image)
   }
 
-  // ⚡ Bolt Performance Optimization: Pre-compute preview images array to avoid O(N) thrashing
-  // Why: Passing an inline .filter().reverse() result directly to a child component prop in a v-for
-  // generates a new reference every render cycle, forcing ThumbnailPreviewStrip to re-render constantly.
-  return Array.from(groups.entries()).map(([dateKey, value]) => ({
-    dateKey,
-    label: value.label,
-    images: value.images,
-    // ⚡ Bolt Performance Optimization: Memoize images array filtering to prevent O(N) array allocation on every render tick for the thumbnail list.
-    // Why: Calling a function that returns a new array reference inside a v-for template binding forces the child component to re-render every time, causing render thrashing.
-    previewImages: value.images.filter((item) => item.type === 'image').reverse(),
-  }))
+  return Array.from(groups.entries()).map(([dateKey, value]) => {
+    // ⚡ Bolt Performance Optimization: Pre-compute filtered and reversed images
+    // Why: Prevents creating a new array reference on every render when passed to ThumbnailPreviewStrip prop
+    const previewImages = value.images.filter((item) => item.type === 'image').reverse()
+
+    return {
+      dateKey,
+      label: value.label,
+      images: value.images,
+      previewImages,
+    }
+  })
 })
 
 function formatPresetName(preset?: string, variant?: string): string {
