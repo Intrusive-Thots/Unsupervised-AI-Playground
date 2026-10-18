@@ -112,7 +112,11 @@
                   :title="showRagSourcePerMessageId[message.id] ? (languages?.COM_HIDE || 'Hide') + ' ' + (i18nState.RAG_SOURCE || 'Source Docs') : (languages?.COM_SHOW || 'Show') + ' ' + (i18nState.RAG_SOURCE || 'Source Docs')"
                 >
                   Source Docs
-                  <span class="ml-1">
+                  <button
+                    class="ml-1 focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded"
+                    :aria-label="showRagSourcePerMessageId[message.id] ? 'Hide source docs' : 'Show source docs'"
+                    :title="showRagSourcePerMessageId[message.id] ? 'Hide source docs' : 'Show source docs'"
+                  >
                     <img
                       v-if="showRagSourcePerMessageId[message.id]"
                       src="../assets/svg/arrow-up.svg"
@@ -156,10 +160,9 @@
                       showThinkingTextPerMessageId[message.id] =
                         !showThinkingTextPerMessageId[message.id]
                     "
-                    class="ml-1 focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded-sm"
-                    :aria-expanded="showThinkingTextPerMessageId[message.id]"
-                    :aria-label="showThinkingTextPerMessageId[message.id] ? (languages?.COM_HIDE || 'Hide Reasoning') : (languages?.COM_SHOW || 'Show Reasoning')"
-                    :title="showThinkingTextPerMessageId[message.id] ? (languages?.COM_HIDE || 'Hide Reasoning') : (languages?.COM_SHOW || 'Show Reasoning')"
+                    class="ml-1 focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded"
+                    :aria-label="showThinkingTextPerMessageId[message.id] ? 'Hide reasoning' : 'Show reasoning'"
+                    :title="showThinkingTextPerMessageId[message.id] ? 'Hide reasoning' : 'Show reasoning'"
                   >
                     <img
                       v-if="showThinkingTextPerMessageId[message.id]"
