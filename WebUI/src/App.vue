@@ -25,7 +25,7 @@
       <button
         v-if="debugToolsEnabled"
         :title="languages.COM_SETTINGS"
-        :aria-label="languages.COM_SETTINGS || 'Settings'"
+        :aria-label="languages.COM_SETTINGS"
         @click="
           () => {
             const curState = globalSetup.loadingState
@@ -43,21 +43,21 @@
       <button
         v-if="!demoMode.enabled"
         :title="languages.COM_MINI"
-        :aria-label="languages.COM_MINI || 'Minimize'"
+        :aria-label="languages.COM_MINI"
         @click="miniWindow"
         class="svg-icon i-mini w-6 h-6"
       ></button>
       <button
         v-if="!demoMode.enabled"
         :title="fullscreen ? languages.COM_FULLSCREEN_EXIT : languages.COM_FULLSCREEN"
-        :aria-label="fullscreen ? (languages.COM_FULLSCREEN_EXIT || 'Exit fullscreen') : (languages.COM_FULLSCREEN || 'Fullscreen')"
+        :aria-label="fullscreen ? languages.COM_FULLSCREEN_EXIT : languages.COM_FULLSCREEN"
         @click="toggleFullScreen"
         class="svg-icon w-6 h-6"
         :class="fullscreen ? 'i-fullscreen-exit' : 'i-fullscreen'"
       ></button>
       <button
         :title="languages.COM_CLOSE"
-        :aria-label="languages.COM_CLOSE || 'Close'"
+        :aria-label="languages.COM_CLOSE"
         @click="closeWindow"
         class="svg-icon i-close w-6 h-6"
       ></button>
