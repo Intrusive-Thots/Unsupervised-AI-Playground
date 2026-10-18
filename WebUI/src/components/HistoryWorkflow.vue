@@ -33,7 +33,7 @@
             </div>
             <ThumbnailPreviewStrip
               class="group-open/details:hidden self-center"
-              :items="imageGroup.previewImages"
+              :items="imageGroup.thumbnailImages"
             />
           </summary>
 
@@ -225,6 +225,10 @@ const nonQueuedImages = computed(() =>
     .reverse(),
 )
 
+// ⚡ Bolt Performance Optimization: Memoize the thumbnail array filtering and reversing.
+// Why: Passing inline array operations (like `.filter().reverse()`) directly as props to child
+// components inside a v-for template generates a new array reference on every render,
+// causing the child component to unnecessarily re-render and creating DOM thrashing.
 const imagesByDay = computed(() => {
   const groups = new Map<string, { label: string; images: MediaItem[] }>()
 
@@ -249,9 +253,7 @@ const imagesByDay = computed(() => {
     dateKey,
     label: value.label,
     images: value.images,
-    // ⚡ Bolt Performance Optimization: Memoize preview images
-    // Why: Prevents creating a new array reference on every render in the template, which causes O(N) render thrashing
-    previewImages: value.images.filter((item) => item.type === 'image').reverse(),
+    thumbnailImages: value.images.filter((item) => item.type === 'image').reverse(),
   }))
 })
 
