@@ -10,13 +10,13 @@
         class="m-2 flex text-foreground"
         :aria-label="
           isHistoryVisible
-            ? languages?.COM_HIDE_HISTORY || 'Hide History'
-            : languages?.COM_SHOW_HISTORY || 'Show History'
+            ? languages.COM_HIDE_HISTORY || 'Hide History'
+            : languages.COM_SHOW_HISTORY || 'Show History'
         "
         :title="
           isHistoryVisible
-            ? languages?.COM_HIDE_HISTORY || 'Hide History'
-            : languages?.COM_SHOW_HISTORY || 'Show History'
+            ? languages.COM_HIDE_HISTORY || 'Hide History'
+            : languages.COM_SHOW_HISTORY || 'Show History'
         "
       >
         <img
