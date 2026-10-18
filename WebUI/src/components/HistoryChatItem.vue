@@ -143,18 +143,15 @@ const emits = defineEmits<{
 
 const conversations = useConversations()
 
-// ⚡ Bolt Performance Optimization: Extract complex loop body into dedicated child component.
-// Why: Naturally isolates reactivity, allowing `computed` properties to safely memoize array filtering/mappings and ensuring that updates to a single item only trigger a re-render for that specific child component.
-const EMPTY_ARRAY: never[] = []
+import type { AipgUiMessage } from '@/assets/js/store/conversations'
 
-// ⚡ Bolt Performance Optimization: Memoize images mapping using computed property
-// Why: Prevents render thrashing in Vue `v-for` loops during frequent updates. Avoids returning new array references inline which causes O(N) re-renders.
-const images = computed(() => {
-  const conversation = conversations.conversationList[props.conversationKey]
-  if (!conversation) return EMPTY_ARRAY
+const EMPTY_MESSAGES: AipgUiMessage[] = []
+const EMPTY_IMAGES: { id: string; imageUrl: string }[] = []
 
-  const result = conversation.flatMap((msg, msgIndex) =>
-    msg.parts
+const computedImages = computed(() => {
+  const conversation = conversations.conversationList[props.conversationKey] || EMPTY_MESSAGES
+  return conversation.flatMap((msg, msgIndex) =>
+    (msg.parts || [])
       .filter(
         (part) =>
           (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
@@ -174,7 +171,7 @@ const images = computed(() => {
             imageUrl: img.imageUrl ?? '',
           }))
         }
-        return []
+        return EMPTY_IMAGES
       })
       .flat()
       .filter(
