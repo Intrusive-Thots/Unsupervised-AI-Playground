@@ -312,6 +312,7 @@
 
 <script setup lang="ts">
 import * as toast from '@/assets/js/toast.ts'
+
 import { useI18N } from '@/assets/js/store/i18n.ts'
 import { useTextInference } from '@/assets/js/store/textInference.ts'
 import { parse } from '@/assets/js/markdownParser.ts'
@@ -329,6 +330,10 @@ import { useComfyUiPresets } from '@/assets/js/store/comfyUiPresets'
 import { base64ToString } from 'uint8array-extras'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 import { useThrottleFn } from '@vueuse/core'
+
+// ⚡ Bolt Performance Optimization: Return a static empty array instead of inline `[]`
+// Why: Prevents Vue from detecting a new array reference and unnecessarily re-rendering child components.
+const EMPTY_MEDIA_ARRAY: MediaItem[] = []
 
 const openAiCompatibleChat = useOpenAiCompatibleChat()
 const textInference = useTextInference()
@@ -535,23 +540,7 @@ function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
   // Otherwise, use output images if available and memoize the mapped array to prevent render thrashing
   if (part.state === 'output-available') {
     if (!part.output) return EMPTY_MEDIA_ARRAY
-
-    // Check if we've already cached the images for this specific output state
-    const cached = toolImagesCache.get(toolCallId)
-    // Only return cached if the exact output object hasn't changed reference
-    if (cached && cached.lastState === part.state && cached.lastOutput === part.output) {
-      return cached.cachedImages
-    }
-
-    // Map and cache
-    const mappedImages = part.output.images.map((img) => ({ ...img, state: 'done' as const }))
-    toolImagesCache.set(toolCallId, {
-      lastState: part.state,
-      lastOutput: part.output,
-      cachedImages: mappedImages
-    })
-
-    return mappedImages
+    return part.output.images.map((img) => ({ ...img, state: 'done' as const }))
   }
 
   return EMPTY_MEDIA_ARRAY
