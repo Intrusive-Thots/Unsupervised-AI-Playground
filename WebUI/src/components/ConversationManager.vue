@@ -7,11 +7,17 @@
     <div class="flex justify-end">
       <button
         @click="isHistoryVisible = !isHistoryVisible"
-        class="m-2 flex text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm"
+        class="m-2 flex text-foreground"
         :aria-label="
-          isHistoryVisible ? 'Hide history' : languages?.COM_SHOW_HISTORY || 'Show history'
+          isHistoryVisible
+            ? languages?.COM_HIDE_HISTORY || 'Hide History'
+            : languages?.COM_SHOW_HISTORY || 'Show History'
         "
-        :title="isHistoryVisible ? 'Hide history' : languages?.COM_SHOW_HISTORY || 'Show history'"
+        :title="
+          isHistoryVisible
+            ? languages?.COM_HIDE_HISTORY || 'Hide History'
+            : languages?.COM_SHOW_HISTORY || 'Show History'
+        "
       >
         <img
           v-if="!isHistoryVisible"
