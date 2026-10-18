@@ -1,3 +1,6 @@
-## 2024-03-22 - Missing focus states on generic icon buttons
-**Learning:** Generic reusable icon buttons without text often lack focus states. While focus is important everywhere, it is critical on reusable wrapper components because any missing accessibility on the wrapper multiplies across all usages.
-**Action:** When auditing custom base components like IconButton.vue, always ensure they inherit focus visible classes (focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none or similar from the design system).
+## 2024-05-24 - Dynamic ARIA Labeling with Existing Tooltips
+**Learning:** Found a common pattern where icon-only buttons (`IconButton.vue`) use a `tooltip` prop for visual users, but lack screen reader context.
+**Action:** Reused the existing visual `tooltip` prop to dynamically bind to `aria-label`, ensuring visual and auditory accessibility are inherently linked and easily maintained by developers.
+## 2024-05-18 - Accessibility on Toggle Buttons
+**Learning:** When adding focus states and accessibility labels to dynamic state toggles (like expanding/collapsing a sidebar panel), ensure `aria-label` correctly reflects the action depending on current state, using existing `focus-visible:ring-2` class utilities for visible focus indicators without writing custom CSS.
+**Action:** Use conditional statements for dynamically changing `aria-label` text (e.g., `isHistoryVisible ? 'Close History' : 'Show History'`) and verify translations provide proper English fallbacks.
