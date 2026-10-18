@@ -11,8 +11,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useConversations } from '@/assets/js/store/conversations'
 import HistoryChatItem from './HistoryChatItem.vue'
+import { useConversations } from '@/assets/js/store/conversations'
 
 const conversations = useConversations()
 

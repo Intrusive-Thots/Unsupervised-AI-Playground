@@ -2,7 +2,7 @@
   <div
     class="flex flex-col items-center justify-between rounded-lg px-3 py-1 transition cursor-pointer border-2"
     :class="
-      isActive
+      conversations.activeKey === conversationKey
         ? 'border-primary bg-muted hover:bg-muted/80'
         : 'border-transparent bg-muted hover:bg-muted/80'
     "
@@ -10,11 +10,11 @@
   >
     <div class="flex items-center justify-between w-full">
       <span class="truncate text-sm text-foreground">
-        {{ title }}
+        {{ conversationTitle }}
       </span>
       <DropdownMenu
-        :open="menuOpen"
-        @update:open="onMenuOpenChange"
+        :open="menuOpenKey === conversationKey"
+        @update:open="(open) => onMenuOpenChange(open)"
       >
         <DropdownMenuTrigger as-child>
           <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop>
@@ -34,7 +34,7 @@
             v-model:open="renameDialogOpen"
             @update:open="
               (open) => {
-                if (!open) menuOpen = false
+                if (!open) menuOpenKey = null
               }
             "
           >
@@ -85,7 +85,7 @@
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction @click="deleteConversation">
+                <AlertDialogAction @click="() => conversations.deleteConversation(conversationKey)">
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -94,7 +94,7 @@
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <ThumbnailPreviewStrip :items="conversationImages" />
+    <ThumbnailPreviewStrip :items="images" />
   </div>
 </template>
 
@@ -135,21 +135,15 @@ const props = defineProps<{
   conversationKey: string
 }>()
 
+const conversations = useConversations()
 const emits = defineEmits<{
-  (e: 'conversationSelected', key: string): void
+  (e: 'conversationSelected'): void
 }>()
 
-const conversations = useConversations()
-
-// ⚡ Bolt Performance Optimization: Extracting HistoryChatItem isolates reactivity.
-// Why: When LLM streams text, frequent updates cause the parent component to re-render.
-// Memoizing array returning functions here prevents O(N) re-renders for unchanged items.
-const conversation = computed(() => conversations.conversationList[props.conversationKey] || [])
-
-const isActive = computed(() => conversations.activeKey === props.conversationKey)
-
-const conversationImages = computed(() => {
-  return conversation.value.flatMap((msg, msgIndex) =>
+const images = computed(() => {
+  const conversation = conversations.conversationList[props.conversationKey]
+  if (!conversation) return []
+  return conversation.flatMap((msg, msgIndex) =>
     msg.parts
       .filter(
         (part) =>
@@ -186,17 +180,16 @@ const conversationImages = computed(() => {
   )
 })
 
-const title = computed(() => {
-  const conv = conversation.value
-  if (!conv || conv.length === 0) {
+const conversationTitle = computed(() => {
+  const conversation = conversations.conversationList[props.conversationKey]
+  if (!conversation || conversation.length === 0) {
     return 'New Conversation'
   }
-  if (conv[0].metadata?.conversationTitle) {
-    return conv[0].metadata.conversationTitle
+  if (conversation[0].metadata?.conversationTitle) {
+    return conversation[0].metadata.conversationTitle
   }
-  const firstMessage = conv[0]
+  const firstMessage = conversation[0]
 
-  // todo: can be deleted eventually
   if (firstMessage.parts === undefined) {
     conversations.deleteConversation(props.conversationKey)
   }
@@ -205,24 +198,28 @@ const title = computed(() => {
   return titlePart ? titlePart.text.substring(0, 50) : 'New Conversation'
 })
 
-const menuOpen = ref(false)
+const menuOpenKey = ref<string | null>(null)
 
 function onMenuOpenChange(open: boolean) {
-  menuOpen.value = open
+  menuOpenKey.value = open
+    ? props.conversationKey
+    : menuOpenKey.value === props.conversationKey
+      ? null
+      : menuOpenKey.value
 }
 
-// Rename dialog state
 const renameDialogOpen = ref(false)
 const renameTitle = ref('')
 
 function openRenameDialog() {
-  renameTitle.value = title.value ?? ''
+  const existingTitle = conversationTitle.value
+  renameTitle.value = existingTitle ?? ''
   renameDialogOpen.value = true
 }
 
 function cancelRename() {
   renameDialogOpen.value = false
-  menuOpen.value = false
+  menuOpenKey.value = null
 }
 
 function saveRename() {
@@ -230,17 +227,13 @@ function saveRename() {
   if (newTitle.length === 0) return
   conversations.renameConversationTitle(props.conversationKey, newTitle)
   renameDialogOpen.value = false
-  menuOpen.value = false
+  menuOpenKey.value = null
 }
 
-function selectConversation() {
+const selectConversation = () => {
   conversations.activeKey = props.conversationKey
   console.log('Selected conversation:', props.conversationKey)
-  emits('conversationSelected', props.conversationKey)
-}
-
-function deleteConversation() {
-  conversations.deleteConversation(props.conversationKey)
+  emits('conversationSelected')
 }
 </script>
 
