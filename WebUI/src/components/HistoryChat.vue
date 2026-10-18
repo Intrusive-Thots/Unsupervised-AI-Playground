@@ -4,52 +4,17 @@
       v-for="key in reversedConversationKeys"
       :key="key"
       :conversationKey="key"
-      @select="selectConversation(key)"
+      :menuOpenKey="menuOpenKey"
+      @updateMenuOpenKey="onUpdateMenuOpenKey"
+      @conversationSelected="onConversationSelected"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-
-import ThumbnailPreviewStrip from './ThumbnailPreviewStrip.vue'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import HistoryChatItem from './HistoryChatItem.vue'
 import { useConversations } from '@/assets/js/store/conversations'
-
-// ⚡ Bolt Performance Optimization: Use a static empty array constant instead of inline array definitions inside loops
-// Why: Returning an inline `[]` inside a loop or mapped function creates a new reference each time, causing unnecessary re-renders in children.
-const EMPTY_ITEMS: { id: string; imageUrl: string }[] = []
-
-// ⚡ Bolt Performance Optimization: Return a static empty array instead of inline `[]`
-// Why: Prevents Vue from detecting a new array reference and unnecessarily re-rendering child components.
-const EMPTY_IMAGES_ARRAY: { id: string; imageUrl: string }[] = []
 
 const conversations = useConversations()
 
@@ -65,6 +30,16 @@ const reversedConversationKeys = computed(() => {
   console.log('Reversed conversation keys:', list, keys)
   return keys
 })
+
+const menuOpenKey = ref<string | null>(null)
+
+function onUpdateMenuOpenKey(key: string | null) {
+  menuOpenKey.value = key
+}
+
+function onConversationSelected() {
+  emits('conversationSelected')
+}
 </script>
 
 <style scoped></style>

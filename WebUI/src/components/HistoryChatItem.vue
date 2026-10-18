@@ -6,16 +6,13 @@
         ? 'border-primary bg-muted hover:bg-muted/80'
         : 'border-transparent bg-muted hover:bg-muted/80'
     "
-    @click="selectConversation(conversationKey)"
+    @click="selectConversation"
   >
     <div class="flex items-center justify-between w-full">
       <span class="truncate text-sm text-foreground">
-        {{ computedConversationTitle }}
+        {{ conversationTitle }}
       </span>
-      <DropdownMenu
-        :open="isMenuOpen"
-        @update:open="onMenuOpenChange"
-      >
+      <DropdownMenu :open="menuOpenKey === conversationKey" @update:open="onMenuOpenChange">
         <DropdownMenuTrigger as-child>
           <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop>
             <span class="svg-icon i-dots-vertical w-4 h-4"></span>
@@ -34,7 +31,10 @@
             v-model:open="renameDialogOpen"
             @update:open="
               (open) => {
-                if (!open) isMenuOpen = false
+                if (!open) {
+                  renameDialogOpen = false
+                  emits('updateMenuOpenKey', null)
+                }
               }
             "
           >
@@ -43,7 +43,7 @@
                 @select="
                   (e: Event) => {
                     e.preventDefault()
-                    openRenameDialog(conversationKey)
+                    openRenameDialog()
                   }
                 "
               >
@@ -94,7 +94,7 @@
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <ThumbnailPreviewStrip :items="computedImages" />
+    <ThumbnailPreviewStrip :items="images" />
   </div>
 </template>
 
@@ -131,29 +131,30 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useConversations } from '@/assets/js/store/conversations'
 
-// ⚡ Bolt Performance Optimization: Use a static empty array constant to prevent creating a new array reference on each iteration
-// Why: Returning an inline `[]` inside a loop or mapping function creates a new array reference, which forces Vue to unnecessarily track it and trigger re-renders.
-const EMPTY_ITEMS: { id: string; imageUrl: string }[] = []
-
-// ⚡ Bolt Performance Optimization: Extract complex v-for body into child component.
-// Why: Prevents render thrashing by preserving array references and isolating reactivity.
 const props = defineProps<{
   conversationKey: string
+  menuOpenKey: string | null
 }>()
 
-const conversations = useConversations()
 const emits = defineEmits<{
-  (e: 'conversationSelected'): void
+  (e: 'conversationSelected', key: string): void
+  (e: 'updateMenuOpenKey', key: string | null): void
 }>()
 
 const conversations = useConversations()
 
-const EMPTY_ITEMS: { id: string; imageUrl: string }[] = []
+// ⚡ Bolt Performance Optimization: Extract complex loop body into dedicated child component.
+// Why: Naturally isolates reactivity, allowing `computed` properties to safely memoize array filtering/mappings and ensuring that updates to a single item only trigger a re-render for that specific child component.
+const EMPTY_ARRAY: never[] = []
 
-const computedImages = computed(() => {
-  const conversation = conversations.conversationList[props.conversationKey] || EMPTY_CONVERSATION
-  const images = conversation.flatMap((msg, msgIndex) =>
-    (msg.parts || [])
+// ⚡ Bolt Performance Optimization: Memoize images mapping using computed property
+// Why: Prevents render thrashing in Vue `v-for` loops during frequent updates. Avoids returning new array references inline which causes O(N) re-renders.
+const images = computed(() => {
+  const conversation = conversations.conversationList[props.conversationKey]
+  if (!conversation) return EMPTY_ARRAY
+
+  const result = conversation.flatMap((msg, msgIndex) =>
+    msg.parts
       .filter(
         (part) =>
           (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
@@ -167,13 +168,13 @@ const computedImages = computed(() => {
           typeof part.output === 'object' &&
           'images' in part.output
         ) {
-          const images = (part.output as { images?: Array<{ imageUrl?: string }> }).images ?? EMPTY_ITEMS
+          const images = (part.output as { images?: Array<{ imageUrl?: string }> }).images ?? []
           return images.map((img, imgIndex) => ({
             id: `${msgIndex}-${partIndex}-${imgIndex}`,
             imageUrl: img.imageUrl ?? '',
           }))
         }
-        return EMPTY_ITEMS
+        return []
       })
       .flat()
       .filter(
@@ -188,14 +189,14 @@ const computedImages = computed(() => {
       ),
   )
 
-  if (images.length === 0) {
-    return EMPTY_IMAGES
-  }
-
-  return images
+  // ⚡ Bolt Performance Optimization: Return static constant empty array
+  // Why: When helper function called from a Vue template needs to return an empty array, return a predefined static constant `never[]` to prevent Vue from detecting a new reference and unnecessarily re-rendering.
+  return result.length > 0 ? result : EMPTY_ARRAY
 })
 
-const computedConversationTitle = computed(() => {
+// ⚡ Bolt Performance Optimization: Memoize conversationTitle using computed property
+// Why: Prevents redundant recalculations on every render cycle for unmodified list items.
+const conversationTitle = computed(() => {
   const conversation = conversations.conversationList[props.conversationKey]
   if (!conversation || conversation.length === 0) {
     return 'New Conversation'
@@ -205,32 +206,33 @@ const computedConversationTitle = computed(() => {
   }
   const firstMessage = conversation[0]
 
+  // todo: can be deleted eventually
   if (firstMessage.parts === undefined) {
     conversations.deleteConversation(props.conversationKey)
+    return 'New Conversation'
   }
 
   const titlePart = firstMessage.parts?.find((part) => part.type === 'text')
   return titlePart ? titlePart.text.substring(0, 50) : 'New Conversation'
 })
 
-const isMenuOpen = ref<boolean>(false)
-
 function onMenuOpenChange(open: boolean) {
-  isMenuOpen.value = open
+  emits('updateMenuOpenKey', open ? props.conversationKey : null)
 }
 
 // Rename dialog state
 const renameDialogOpen = ref(false)
 const renameTitle = ref('')
 
-function openRenameDialog(_conversationKey: string) {
-  renameTitle.value = computedConversationTitle.value ?? ''
+function openRenameDialog() {
+  const existingTitle = conversationTitle.value
+  renameTitle.value = existingTitle ?? ''
   renameDialogOpen.value = true
 }
 
 function cancelRename() {
   renameDialogOpen.value = false
-  isMenuOpen.value = false
+  emits('updateMenuOpenKey', null)
 }
 
 function saveRename() {
@@ -238,13 +240,13 @@ function saveRename() {
   if (newTitle.length === 0) return
   conversations.renameConversationTitle(props.conversationKey, newTitle)
   renameDialogOpen.value = false
-  isMenuOpen.value = false
+  emits('updateMenuOpenKey', null)
 }
 
-const selectConversation = (key: string) => {
-  conversations.activeKey = key
-  console.log('Selected conversation:', key)
-  emits('conversationSelected')
+const selectConversation = () => {
+  conversations.activeKey = props.conversationKey
+  console.log('Selected conversation:', props.conversationKey)
+  emits('conversationSelected', props.conversationKey)
 }
 </script>
 
