@@ -97,7 +97,7 @@
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <ThumbnailPreviewStrip :items="conversationImages[key] ?? []" />
+      <ThumbnailPreviewStrip :items="conversationImagesMap.get(key) || EMPTY_ARRAY" />
     </div>
   </div>
 </template>
@@ -115,14 +115,15 @@ const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
 
-const conversationImages = computed(() => {
-  const result: Record<string, { id: string; imageUrl: string }[]> = {}
-  if (!conversations.conversationList) return result
+const EMPTY_ARRAY: { id: string; imageUrl: string }[] = []
 
-  for (const [key, conversation] of Object.entries(conversations.conversationList)) {
-    if (!conversation) continue
-
-    result[key] = conversation.flatMap((msg, msgIndex) =>
+// ⚡ Bolt Performance Optimization: Memoize images extracted from conversation lists
+// Why: Calling `images(...)` inside `v-for` parses every message in a conversation on every
+//      render cycle, allocating new arrays. This causes O(N) thrashing for long histories.
+const conversationImagesMap = computed(() => {
+  const map = new Map<string, { id: string; imageUrl: string }[]>()
+  for (const [key, conversation] of Object.entries(conversations.conversationList || {})) {
+    const imgs = conversation.flatMap((msg, msgIndex) =>
       msg.parts
         .filter(
           (part) =>
@@ -157,8 +158,11 @@ const conversationImages = computed(() => {
             typeof img.id === 'string',
         ),
     )
+    if (imgs.length > 0) {
+      map.set(key, imgs)
+    }
   }
-  return result
+  return map
 })
 
 const reversedConversationKeys = computed(() => {
