@@ -1,6 +1,3 @@
-## 2024-05-24 - Dynamic ARIA Labeling with Existing Tooltips
-**Learning:** Found a common pattern where icon-only buttons (`IconButton.vue`) use a `tooltip` prop for visual users, but lack screen reader context.
-**Action:** Reused the existing visual `tooltip` prop to dynamically bind to `aria-label`, ensuring visual and auditory accessibility are inherently linked and easily maintained by developers.
-## 2024-05-15 - Dynamic State-Based ARIA Labels for Icon Toggles
-**Learning:** When using icon-only toggle buttons (like an expand/collapse panel button) in Vue, static `aria-label` attributes are insufficient. Screen readers will not announce the changed state when the visual icon updates. Using a dynamic `aria-label` bound to the component's state (e.g. `:aria-label="isOpen ? 'Close' : 'Open'"`) ensures the accessibility tree stays perfectly synchronized with the visual state without needing additional DOM elements.
-**Action:** Always bind both `:aria-label` and `:title` to the reactive toggle state for icon-only buttons that change function upon clicking. Provide localized strings for both states.
+## 2024-03-22 - Missing focus states on generic icon buttons
+**Learning:** Generic reusable icon buttons without text often lack focus states. While focus is important everywhere, it is critical on reusable wrapper components because any missing accessibility on the wrapper multiplies across all usages.
+**Action:** When auditing custom base components like IconButton.vue, always ensure they inherit focus visible classes (focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none or similar from the design system).
