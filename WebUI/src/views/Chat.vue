@@ -256,6 +256,7 @@ import {
 import { useComfyUiPresets } from '@/assets/js/store/comfyUiPresets'
 import { base64ToString } from 'uint8array-extras'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import { useThrottleFn } from '@vueuse/core'
 
 const openAiCompatibleChat = useOpenAiCompatibleChat()
 const textInference = useTextInference()
@@ -394,13 +395,14 @@ function handleCancel() {
   promptStore.promptSubmitted = false
 }
 
-function handleScroll(e: Event) {
+// ⚡ Bolt: Throttle scroll event to prevent main-thread jank and frame drops when scrolling long chats
+const handleScroll = useThrottleFn((e: Event) => {
   const target = e.target as HTMLElement
   const distanceFromBottom = target.scrollHeight - (target.scrollTop + target.clientHeight)
 
   autoScrollEnabled.value = distanceFromBottom <= 35
   showScrollButton.value = distanceFromBottom > 60
-}
+}, 50)
 
 function scrollToBottom(smooth = true) {
   if (chatPanel.value) {
