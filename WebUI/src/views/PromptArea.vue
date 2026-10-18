@@ -23,18 +23,18 @@
           <button
             @click="textInference.decreaseFontSize()"
             :disabled="textInference.isMinSize"
-            class="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded-md"
-            title="Decrease font size"
-            aria-label="Decrease font size"
+            class="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            :title="languages?.DECREASE_FONT_SIZE || 'Decrease font size'"
+            :aria-label="languages?.DECREASE_FONT_SIZE || 'Decrease font size'"
           >
             <MagnifyingGlassMinusIcon class="size-5" />
           </button>
           <button
             @click="textInference.increaseFontSize()"
             :disabled="textInference.isMaxSize"
-            class="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded-md"
-            title="Increase font size"
-            aria-label="Increase font size"
+            class="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            :title="languages?.INCREASE_FONT_SIZE || 'Increase font size'"
+            :aria-label="languages?.INCREASE_FONT_SIZE || 'Increase font size'"
           >
             <MagnifyingGlassPlusIcon class="size-5" />
           </button>
@@ -60,9 +60,9 @@
             <span class="truncate max-w-[200px]" :title="doc.filename">{{ doc.filename }}</span>
             <button
               @click="textInference.updateFileCheckStatus(doc.hash, false)"
-              class="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded"
-              title="Remove from context"
-              aria-label="Remove from context"
+              class="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+              :title="languages?.COM_REMOVE || 'Remove from context'"
+              :aria-label="languages?.COM_REMOVE || 'Remove from context'"
             >
               <XMarkIcon class="size-4" />
             </button>
@@ -94,9 +94,9 @@
             />
             <button
               @click="removeImage(preview.id)"
-              class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background rounded-full p-0.5 text-muted-foreground hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus:outline-none focus-visible:ring-primary"
-              title="Remove image"
-              aria-label="Remove image"
+              class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background rounded-full p-0.5 text-muted-foreground hover:text-destructive"
+              :title="languages?.COM_REMOVE || 'Remove image'"
+              :aria-label="languages?.COM_REMOVE || 'Remove image'"
             >
               <XMarkIcon class="size-4" />
             </button>
@@ -106,7 +106,12 @@
             class="self-center border border-dashed border-border rounded-md p-1 hover:cursor-pointer origin-bottom-left"
             :class="{ 'border-primary bg-primary/10': isOverDropZone }"
           >
-            <Label htmlFor="file-attachment"><PlusIcon class="size-4 cursor-pointer" /></Label>
+            <Label
+              htmlFor="file-attachment"
+              :title="languages?.RAG_ADD_FILES || 'Add files'"
+              :aria-label="languages?.RAG_ADD_FILES || 'Add files'"
+              ><PlusIcon class="size-4 cursor-pointer"
+            /></Label>
             <input
               type="file"
               class="hidden"
@@ -134,9 +139,11 @@
             v-if="promptStore.getCurrentMode() === 'chat'"
             @click="handleRecordingClick"
             :disabled="(false && !speechToText.enabled) || audioRecorder.isTranscribing"
-            :aria-label="audioRecorder.isRecording ? (languages?.COM_STOP_RECORDING || 'Stop recording') : (languages?.COM_START_RECORDING || 'Start recording')"
+            :aria-label="languages?.MICROPHONE || 'Microphone'"
             :title="
-              !speechToText.enabled ? 'Enable Speech To Text in settings to use voice input' : ''
+              !speechToText.enabled
+                ? 'Enable Speech To Text in settings to use voice input'
+                : languages?.MICROPHONE || 'Microphone'
             "
             :aria-label="audioRecorder.isTranscribing ? 'Transcribing audio' : (audioRecorder.isRecording ? 'Stop recording' : 'Record audio')"
           >
@@ -171,7 +178,8 @@
             @click="handleSubmitPromptClick"
             :aria-label="languages?.COM_SUBMIT_PROMPT || 'Submit prompt'"
             class="px-3 py-1.5 bg-primary hover:bg-primary/80 rounded-lg text-sm min-w-[44px]"
-            aria-label="Submit prompt"
+            :title="languages?.COM_GENERATE || 'Generate'"
+            :aria-label="languages?.COM_GENERATE || 'Generate'"
           >
             →
           </Button>
@@ -181,7 +189,8 @@
             :aria-label="languages?.COM_STOP_GENERATION || 'Stop generation'"
             :title="languages?.COM_STOP_GENERATION || 'Stop generation'"
             class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm min-w-[44px] flex items-center justify-center"
-            aria-label="Cancel processing"
+            :title="languages?.COM_STOP || 'Stop'"
+            :aria-label="languages?.COM_STOP || 'Stop'"
           >
             <i class="svg-icon w-4 h-4 i-stop"></i>
           </Button>
@@ -190,8 +199,8 @@
             disabled
             :aria-label="languages?.COM_GENERATING || 'Generating'"
             class="px-3 py-1.5 bg-red-400 cursor-not-allowed rounded-lg text-sm min-w-[44px] flex items-center justify-center"
-            :aria-label="i18nState.COM_GENERATING"
-            :title="i18nState.COM_GENERATING"
+            :title="languages?.COM_STOP || 'Stop'"
+            :aria-label="languages?.COM_STOP || 'Stop'"
           >
             <i class="svg-icon w-4 h-4 i-loading"></i>
           </Button>
