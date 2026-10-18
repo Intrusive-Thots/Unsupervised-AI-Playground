@@ -245,18 +245,14 @@ const imagesByDay = computed(() => {
     groups.get(dateKey)!.images.push(image)
   }
 
-  return Array.from(groups.entries()).map(([dateKey, value]) => {
-    // ⚡ Bolt Performance Optimization: Pre-compute filtered and reversed images
-    // Why: Prevents creating a new array reference on every render when passed to ThumbnailPreviewStrip prop
-    const previewImages = value.images.filter((item) => item.type === 'image').reverse()
-
-    return {
-      dateKey,
-      label: value.label,
-      images: value.images,
-      previewImages,
-    }
-  })
+  return Array.from(groups.entries()).map(([dateKey, value]) => ({
+    dateKey,
+    label: value.label,
+    images: value.images,
+    // ⚡ Bolt Performance Optimization: Memoize preview images
+    // Why: Prevents creating a new array reference on every render in the template, which causes O(N) render thrashing
+    previewImages: value.images.filter((item) => item.type === 'image').reverse(),
+  }))
 })
 
 function formatPresetName(preset?: string, variant?: string): string {
