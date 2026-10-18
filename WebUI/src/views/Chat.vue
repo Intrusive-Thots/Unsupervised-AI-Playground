@@ -502,9 +502,12 @@ function copyText(text: string) {
     .catch((e) => console.error('Error while copying text to clipboard', e))
 }
 
+// ⚡ Bolt Performance Optimization: Return static empty array to prevent Vue render thrashing. Why: Returning inline '[]' creates a new array reference every render, causing child components to needlessly re-render during frequent updates.
+const EMPTY_MEDIA_ARRAY: never[] = []
+
 // Helper functions for tool rendering
 function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
-  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_ARRAY
+  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ARRAY
   const toolCallId = part.toolCallId
   const progress = toolProgressMap[toolCallId]
 
@@ -515,20 +518,11 @@ function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
 
   // Otherwise, use output images if available
   if (part.state === 'output-available') {
-    if (!part.output) return EMPTY_ARRAY
-
-    // Memoize final mapped images array to prevent render thrashing
-    const outputCacheKey = `output-${toolCallId}`
-    if (!toolImagesCache.has(outputCacheKey)) {
-      toolImagesCache.set(
-        outputCacheKey,
-        part.output.images.map((img) => ({ ...img, state: 'done' as const })),
-      )
-    }
-    return toolImagesCache.get(outputCacheKey)!
+    if (!part.output) return EMPTY_MEDIA_ARRAY
+    return part.output.images.map((img) => ({ ...img, state: 'done' as const }))
   }
 
-  return EMPTY_ARRAY
+  return EMPTY_MEDIA_ARRAY
 }
 
 function getToolProcessing(part: ToolUIPart<AipgTools>): boolean {
