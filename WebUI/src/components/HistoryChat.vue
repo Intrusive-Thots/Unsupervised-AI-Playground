@@ -97,8 +97,8 @@
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <ThumbnailPreviewStrip :items="conversationImagesMap.get(key) || EMPTY_ARRAY" />
-    </div>
+      <ThumbnailPreviewStrip :items="conversationImages[key] || []" />
+    </HistoryChatItem>
   </div>
 </template>
 
