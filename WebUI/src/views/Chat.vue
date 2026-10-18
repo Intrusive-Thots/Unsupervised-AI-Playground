@@ -350,6 +350,10 @@ import { useThrottleFn } from '@vueuse/core'
 // Why: Prevents Vue from detecting a new array reference and unnecessarily re-rendering child components.
 const EMPTY_MEDIA_ARRAY: MediaItem[] = []
 
+// ⚡ Bolt Performance Optimization: Use a static empty array reference for fallbacks.
+// Why: Returning a new array literal `[]` from a function used in templates creates a new reference on every render tick, causing unnecessary reactivity triggers and child component re-renders. A stable reference prevents this.
+const EMPTY_MEDIA_ITEM_ARRAY: MediaItem[] = []
+
 const openAiCompatibleChat = useOpenAiCompatibleChat()
 const textInference = useTextInference()
 const promptStore = usePromptStore()
@@ -560,7 +564,7 @@ watch(() => activeConversation.value, (newVal, oldVal) => {
 })
 
 function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
-  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ARRAY
+  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ITEM_ARRAY
   const toolCallId = part.toolCallId
   const progress = toolProgressMap[toolCallId]
 
@@ -571,11 +575,11 @@ function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
 
   // Otherwise, use output images if available and memoize the mapped array to prevent render thrashing
   if (part.state === 'output-available') {
-    if (!part.output) return EMPTY_MEDIA_ARRAY
+    if (!part.output) return EMPTY_MEDIA_ITEM_ARRAY
     return part.output.images.map((img) => ({ ...img, state: 'done' as const }))
   }
 
-  return EMPTY_MEDIA_ARRAY
+  return EMPTY_MEDIA_ITEM_ARRAY
 }
 
 function getToolProcessing(part: ToolUIPart<AipgTools>): boolean {
