@@ -3,8 +3,8 @@
     <HistoryChatItem
       v-for="key in reversedConversationKeys"
       :key="key"
-      :conversationKey="key"
-      @conversationSelected="onConversationSelected"
+      :conversation-key="key"
+      @select="selectConversation(key)"
     />
   </div>
 </template>
@@ -21,6 +21,8 @@ const EMPTY_IMAGES: { id: string; imageUrl: string }[] = []
 const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
+
+// ⚡ Bolt Performance Optimization: Removed global conversationImages map and duplicate DOM to prevent O(N) recalculations on the entire list; HistoryChatItem now isolates reactivity per item.
 
 const reversedConversationKeys = computed(() => {
   const list = conversations.conversationList ?? {}
