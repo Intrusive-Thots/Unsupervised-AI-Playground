@@ -55,7 +55,12 @@
             />
             <div
               :class="textInference.fontSizeClass"
-              v-html="getParsedMarkdown(message.id + '-user', message.parts.find((part) => part.type === 'text')?.text ?? '', false)"
+              v-html="
+                getRenderedMarkdown(
+                  message.parts.find((part) => part.type === 'text')?.text ?? '',
+                  false,
+                )
+              "
             ></div>
             <button
               class="flex items-center gap-1 text-xs text-muted-foreground mt-1 focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded-sm"
@@ -167,16 +172,26 @@
                 <div
                   v-if="showThinkingTextPerMessageId[message.id]"
                   class="border-l-2 border-border pl-4 text-muted-foreground"
-                  v-html="getParsedMarkdown(message.id + '-reasoning', message.parts.find((part) => part.type === 'reasoning')?.text ?? '', i + 1 == activeConversation.length && openAiCompatibleChat.processing)"
+                  v-html="
+                    getRenderedMarkdown(
+                      message.parts.find((part) => part.type === 'reasoning')?.text ?? '',
+                      i + 1 == activeConversation.length && openAiCompatibleChat.processing,
+                    )
+                  "
                 ></div>
               </template>
               <div
-                v-html="getParsedMarkdown(message.id + '-text', message.parts.find((part) => part.type === 'text')?.text ?? '', i + 1 == activeConversation.length && openAiCompatibleChat.processing)"
+                v-html="
+                  getRenderedMarkdown(
+                    message.parts.find((part) => part.type === 'text')?.text ?? '',
+                    i + 1 == activeConversation.length && openAiCompatibleChat.processing,
+                  )
+                "
               ></div>
 
               <!-- Render tool parts -->
               <template
-                v-for="(part, index) in message.parts"
+                v-for="part in messageToolParts.get(message.id) || []"
                 :key="
                   part.type === 'tool-comfyUI'
                     ? `tool-${part.toolCallId}`
@@ -187,8 +202,7 @@
                         : `part-${index}`
                 "
               >
-                <template v-if="part.type.startsWith('tool-')">
-                  <span>I'm using the tool {{ part.type.replace('tool-', '') }}</span>
+                <span>I'm using the tool {{ part.type.replace('tool-', '') }}</span>
                   <template v-if="part.type === 'tool-comfyUI'">
                     <div class="mt-1 pt-1">
                       <span
@@ -212,7 +226,8 @@
                   <template v-else-if="part.type === 'tool-comfyUiImageEdit'">
                     <div class="mt-1 pt-1">
                       <span
-                        >Editing using the preset <b>{{ part.input?.workflow ?? 'unknown' }}</b></span
+                        >Editing using the preset
+                        <b>{{ part.input?.workflow ?? 'unknown' }}</b></span
                       >
                       <br />
                       <br />
@@ -232,7 +247,8 @@
                     <div class="mt-1 pt-1">
                       <div
                         v-if="
-                          part.state === 'output-available' && (part as any).output?.annotatedImageUrl
+                          part.state === 'output-available' &&
+                          (part as any).output?.annotatedImageUrl
                         "
                       >
                         <img
@@ -250,7 +266,6 @@
                       </div>
                     </div>
                   </template>
-                </template>
               </template>
             </div>
             <div class="answer-tools flex gap-3 items-center text-muted-foreground">
@@ -347,15 +362,32 @@ const autoScrollEnabled = ref(true)
 const showScrollButton = ref(false)
 const chatPanel = ref<HTMLElement | null>(null)
 
-
 const activeConversation = computed(() => openAiCompatibleChat.messages)
 const showThinkingTextPerMessageId = reactive<Record<string, boolean>>({})
 const showRagSourcePerMessageId = reactive<Record<string, boolean>>({})
 
 const ragSourcePerMessageId = reactive<Record<string, string>>({})
 
-const EMPTY_ARRAY: MediaItem[] = []
-const toolImagesCache = new Map<string, MediaItem[]>()
+// OPTIMIZATION: Memoize message parts filtering to prevent render thrashing during v-for iterations
+// By wrapping .filter() in a computed property based on the active conversation, we avoid creating
+// a new array reference on every render cycle.
+const messageToolParts = computed(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const partsMap = new Map<string, any[]>()
+  if (activeConversation.value) {
+    activeConversation.value.forEach((message) => {
+      partsMap.set(message.id, message.parts.filter((p) => p.type.startsWith('tool-')))
+    })
+  }
+  return partsMap
+})
+
+// Markdown rendering cache to prevent render thrashing in v-for loops
+// We only want to cache fully generated messages. If the message is actively
+// streaming (processing), we bypass the cache entirely to avoid storing every
+// intermediate string state and causing rapid cache evictions.
+const markdownCache = new Map<string, string>()
+const MAX_CACHE_SIZE = 1000
 
 function getParsedMarkdown(cacheKey: string, text: string, isProcessing: boolean): string {
   if (!text) return ''
