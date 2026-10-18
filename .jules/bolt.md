@@ -1,12 +1,3 @@
-## 2024-05-28 - Vue Template Render Thrashing in v-for Loops
-**Learning:** Functions called inside `v-html` or template interpolations within `v-for` loops (like `sanitizeMarkdown(parse(text))`) will re-execute for *every* item in the loop every time the array updates. This is especially problematic in LLM streaming, where the last message's array updates multiple times per second, causing O(N) expensive markdown parsing ops every tick.
-**Action:** Always memoize expensive formatting functions called in Vue templates, especially inside loops. A simple `Map` keyed by the raw input string works exceptionally well for message parsing because LLM outputs append to strings, making previous message text stable and instantly cacheable.
-## 2026-03-05 - Streaming Render Thrashing via v-html
-In Vue.js, inline function calls like `sanitizeMarkdown(parse(text))` inside `v-html` bindings of a `v-for` loop will execute on every single render tick. When streaming LLM text token-by-token, this causes severe CPU thrashing. Implementing an LRU cache mitigates this, but **crucially**, you must bypass caching for the actively streaming message (where text changes every frame) and only cache the final, completed message string to prevent blowing out the cache capacity with intermediate token states.
-## 2024-05-17 - Memoization for Markdown Parsing in v-for Loops
-**Learning:** The Vue.js frontend is highly sensitive to function calls inside `v-for` loops, especially `v-html` template interpolations. Calling expensive operations like markdown parsing (`parse`) directly in the template causes severe render thrashing.
-**Action:** Always use memoization (e.g., Map-based LRU caching) for expensive operations. Crucially, when streaming LLM text, bypass the cache during active streaming and only cache the final text to prevent rapid cache evictions.
-
-## 2024-06-25 - Computed Properties vs Template Method Calls
-**Learning:** Calling complex inline functions that return new object/array instances inside Vue template loops (e.g., `<ThumbnailPreviewStrip :items="images(conversation)" />`) causes severe render thrashing. Every re-render creates a new array reference, triggering full re-renders of the child components, even if the underlying data hasn't changed.
-**Action:** Extract expensive data extraction/transformation logic used in templates into `computed` properties that return a keyed record (e.g., `Record<string, ComputedData>`). This ensures the template accesses cached references (`conversationImages[key]`) and prevents unnecessary child component re-renders.
+## 2024-05-24 - Vue Inline Arrays Cause Render Thrashing
+**Learning:** In Vue, using inline array literals like `['chat', 'imageGen', 'video']` inside a `v-for` loop or within computed properties causes Vue to allocate a new array reference on every single render cycle or property evaluation. This triggers unnecessary DOM updates and child component re-renders.
+**Action:** Always extract static array literals into constants in the `<script setup>` block, preserving reference identity across renders.
