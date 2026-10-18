@@ -542,11 +542,9 @@ function copyText(text: string) {
     .catch((e) => console.error('Error while copying text to clipboard', e))
 }
 
-// ⚡ Bolt Performance Optimization: Use a static constant for empty array returns
-// Why: When a helper function called from a Vue template returns a new inline `[]` on every evaluation,
-// Vue detects it as a new reference and unnecessarily re-renders child components like `ChatWorkflowResult`.
-// Returning a static constant prevents this render thrashing.
-const EMPTY_MEDIA_ARRAY: MediaItem[] = []
+// ⚡ Bolt Performance Optimization: Use static constant for empty array fallbacks.
+// Why: Prevents returning a new array reference on every render, avoiding unnecessary child component re-renders.
+const EMPTY_MEDIA_ITEMS: MediaItem[] = []
 
 // Helper functions for tool rendering
 
@@ -555,7 +553,8 @@ const EMPTY_MEDIA_ARRAY: MediaItem[] = []
 const EMPTY_MEDIA_ITEMS: MediaItem[] = []
 
 function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
-  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ITEMS
+  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit'))
+    return EMPTY_MEDIA_ITEMS
   const toolCallId = part.toolCallId
   const progress = toolProgressMap[toolCallId]
 
