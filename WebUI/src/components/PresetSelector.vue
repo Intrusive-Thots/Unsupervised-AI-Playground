@@ -109,7 +109,8 @@ const activeVariantName = computed(() => {
   return presetsStore.activeVariantName[selectedPresetName.value] || null
 })
 
-// ⚡ Bolt Performance Optimization: Use static empty array to prevent returning new reference and forcing re-renders
+// ⚡ Bolt Performance Optimization: Return static empty array
+// Why: Returning inline [] from methods called in computed templates creates new array references every render tick, forcing child components to re-render.
 const EMPTY_VARIANT_OPTIONS: VariantOption[] = []
 
 const variantSelectorOptions = computed<VariantOption[]>(() => {
