@@ -16,6 +16,8 @@ import { computed, ref } from 'vue'
 import HistoryChatItem from './HistoryChatItem.vue'
 import { useConversations } from '@/assets/js/store/conversations'
 
+const EMPTY_ARRAY: never[] = []
+
 const conversations = useConversations()
 
 // ⚡ Bolt Performance Optimization: Prevent render thrashing by using static empty array reference
@@ -23,6 +25,44 @@ const EMPTY_IMAGES: { id: string; imageUrl: string }[] = []
 const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
+
+const images = (conversation: AipgUiMessage[]) => {
+  return conversation.flatMap((msg, msgIndex) =>
+    msg.parts
+      .filter(
+        (part) =>
+          (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
+          part.state === 'output-available',
+      )
+      .map((part, partIndex) => {
+        if (
+          (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
+          'output' in part &&
+          part.output &&
+          typeof part.output === 'object' &&
+          'images' in part.output
+        ) {
+          const images = (part.output as { images?: Array<{ imageUrl?: string }> }).images ?? EMPTY_ARRAY
+          return images.map((img, imgIndex) => ({
+            id: `${msgIndex}-${partIndex}-${imgIndex}`,
+            imageUrl: img.imageUrl ?? '',
+          }))
+        }
+        return EMPTY_ARRAY
+      })
+      .flat()
+      .filter(
+        (img): img is { id: string; imageUrl: string } =>
+          img !== null &&
+          img !== undefined &&
+          'imageUrl' in img &&
+          typeof img.imageUrl === 'string' &&
+          img.imageUrl.trim() !== '' &&
+          'id' in img &&
+          typeof img.id === 'string',
+      ),
+  )
+}
 
 const reversedConversationKeys = computed(() => {
   const list = conversations.conversationList ?? {}
