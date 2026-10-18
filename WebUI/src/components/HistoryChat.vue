@@ -3,9 +3,102 @@
     <HistoryChatItem
       v-for="key in reversedConversationKeys"
       :key="key"
-      :conversationKey="key"
-      @select="selectConversation(key)"
-    />
+      class="flex flex-col items-center justify-between rounded-lg px-3 py-1 transition cursor-pointer border-2"
+      :class="
+        conversations.activeKey === key
+          ? 'border-primary bg-muted hover:bg-muted/80'
+          : 'border-transparent bg-muted hover:bg-muted/80'
+      "
+      @click="selectConversation(key)"
+    >
+      <div class="flex items-center justify-between w-full">
+        <span class="truncate text-sm text-foreground">
+          {{ conversationTitle(key) }}
+        </span>
+        <DropdownMenu
+          :open="menuOpenKey === key"
+          @update:open="(open) => onMenuOpenChange(key, open)"
+        >
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop>
+              <span class="svg-icon i-dots-vertical w-4 h-4"></span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            class="w-28"
+            :onCloseAutoFocus="
+              (ev) => {
+                ev.preventDefault?.()
+              }
+            "
+          >
+            <Dialog
+              v-model:open="renameDialogOpen"
+              @update:open="
+                (open) => {
+                  if (!open) menuOpenKey = null
+                }
+              "
+            >
+              <DialogTrigger asChild>
+                <DropdownMenuItem
+                  @select="
+                    (e: Event) => {
+                      e.preventDefault()
+                      openRenameDialog(key)
+                    }
+                  "
+                >
+                  Rename
+                </DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Rename conversation</DialogTitle>
+                  <DialogDescription>Set a new title for this conversation.</DialogDescription>
+                </DialogHeader>
+                <div class="mt-2">
+                  <Input
+                    autofocus
+                    type="text"
+                    placeholder="Enter title"
+                    v-model="renameTitle"
+                    @keydown.enter.prevent="saveRename"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" @click="cancelRename">Cancel</Button>
+                  <Button :disabled="!renameTitle.trim()" @click="saveRename">Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem @select="(e: Event) => e.preventDefault()">
+                  Delete
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove this conversation and its messages.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction @click="() => conversations.deleteConversation(key)">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <ThumbnailPreviewStrip :items="conversationImages[key] || []" />
+    </HistoryChatItem>
   </div>
 </template>
 
