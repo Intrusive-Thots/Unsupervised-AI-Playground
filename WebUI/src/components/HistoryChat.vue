@@ -113,7 +113,48 @@ const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
 
-const EMPTY_ARRAY: { id: string; imageUrl: string }[] = []
+// ⚡ Bolt Performance Optimization: Return static EMPTY_ARRAY to prevent Vue reactivity system from detecting a new reference when no images exist, which avoids O(N) re-renders in ThumbnailPreviewStrip.
+const EMPTY_ARRAY: never[] = []
+
+const images = (conversation: AipgUiMessage[]) => {
+  const result = conversation.flatMap((msg, msgIndex) =>
+    msg.parts
+      .filter(
+        (part) =>
+          (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
+          part.state === 'output-available',
+      )
+      .map((part, partIndex) => {
+        if (
+          (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
+          'output' in part &&
+          part.output &&
+          typeof part.output === 'object' &&
+          'images' in part.output
+        ) {
+          const images = (part.output as { images?: Array<{ imageUrl?: string }> }).images ?? []
+          return images.map((img, imgIndex) => ({
+            id: `${msgIndex}-${partIndex}-${imgIndex}`,
+            imageUrl: img.imageUrl ?? '',
+          }))
+        }
+        return []
+      })
+      .flat()
+      .filter(
+        (img): img is { id: string; imageUrl: string } =>
+          img !== null &&
+          img !== undefined &&
+          'imageUrl' in img &&
+          typeof img.imageUrl === 'string' &&
+          img.imageUrl.trim() !== '' &&
+          'id' in img &&
+          typeof img.id === 'string',
+      ),
+  )
+
+  return result.length === 0 ? EMPTY_ARRAY : result
+}
 
 const conversationImagesCache = computed(() => {
   const cache = new Map<string, { id: string; imageUrl: string }[]>()
