@@ -2,7 +2,7 @@
   <div
     class="flex flex-col items-center justify-between rounded-lg px-3 py-1 transition cursor-pointer border-2"
     :class="
-      conversations.activeKey === conversationKey
+      isActive
         ? 'border-primary bg-muted hover:bg-muted/80'
         : 'border-transparent bg-muted hover:bg-muted/80'
     "
@@ -10,11 +10,14 @@
   >
     <div class="flex items-center justify-between w-full">
       <span class="truncate text-sm text-foreground">
-        {{ computedTitle }}
+        {{ title }}
       </span>
-      <DropdownMenu :open="menuOpen" @update:open="(open) => onMenuOpenChange(open)">
+      <DropdownMenu
+        :open="menuOpen"
+        @update:open="onMenuOpenChange"
+      >
         <DropdownMenuTrigger as-child>
-          <Button aria-label="Conversation options" variant="ghost" size="icon" class="h-6 w-6" @click.stop>
+          <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop>
             <span class="svg-icon i-dots-vertical w-4 h-4"></span>
           </Button>
         </DropdownMenuTrigger>
@@ -82,7 +85,7 @@
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction @click="() => conversations.deleteConversation(conversationKey)">
+                <AlertDialogAction @click="deleteConversation">
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -91,7 +94,7 @@
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <ThumbnailPreviewStrip :items="computedImages" />
+    <ThumbnailPreviewStrip :items="conversationImages" />
   </div>
 </template>
 
@@ -128,22 +131,26 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useConversations } from '@/assets/js/store/conversations'
 
-// ⚡ Bolt Performance Optimization: Extract complex v-for body into child component.
-// Why: Prevents render thrashing by preserving array references and isolating reactivity.
 const props = defineProps<{
   conversationKey: string
 }>()
 
 const emits = defineEmits<{
-  (e: 'select'): void
+  (e: 'conversationSelected', key: string): void
 }>()
 
 const conversations = useConversations()
 
-const computedImages = computed(() => {
-  const conversation = conversations.conversationList[props.conversationKey] || []
-  return conversation.flatMap((msg, msgIndex) =>
-    (msg.parts || [])
+// ⚡ Bolt Performance Optimization: Extracting HistoryChatItem isolates reactivity.
+// Why: When LLM streams text, frequent updates cause the parent component to re-render.
+// Memoizing array returning functions here prevents O(N) re-renders for unchanged items.
+const conversation = computed(() => conversations.conversationList[props.conversationKey] || [])
+
+const isActive = computed(() => conversations.activeKey === props.conversationKey)
+
+const conversationImages = computed(() => {
+  return conversation.value.flatMap((msg, msgIndex) =>
+    msg.parts
       .filter(
         (part) =>
           (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
@@ -179,16 +186,17 @@ const computedImages = computed(() => {
   )
 })
 
-const computedTitle = computed(() => {
-  const conversation = conversations.conversationList[props.conversationKey]
-  if (!conversation || conversation.length === 0) {
+const title = computed(() => {
+  const conv = conversation.value
+  if (!conv || conv.length === 0) {
     return 'New Conversation'
   }
-  if (conversation[0].metadata?.conversationTitle) {
-    return conversation[0].metadata.conversationTitle
+  if (conv[0].metadata?.conversationTitle) {
+    return conv[0].metadata.conversationTitle
   }
-  const firstMessage = conversation[0]
+  const firstMessage = conv[0]
 
+  // todo: can be deleted eventually
   if (firstMessage.parts === undefined) {
     conversations.deleteConversation(props.conversationKey)
   }
@@ -197,7 +205,7 @@ const computedTitle = computed(() => {
   return titlePart ? titlePart.text.substring(0, 50) : 'New Conversation'
 })
 
-const menuOpen = ref<boolean>(false)
+const menuOpen = ref(false)
 
 function onMenuOpenChange(open: boolean) {
   menuOpen.value = open
@@ -208,7 +216,7 @@ const renameDialogOpen = ref(false)
 const renameTitle = ref('')
 
 function openRenameDialog() {
-  renameTitle.value = computedTitle.value ?? ''
+  renameTitle.value = title.value ?? ''
   renameDialogOpen.value = true
 }
 
@@ -225,7 +233,15 @@ function saveRename() {
   menuOpen.value = false
 }
 
-const selectConversation = () => {
-  emits('select')
+function selectConversation() {
+  conversations.activeKey = props.conversationKey
+  console.log('Selected conversation:', props.conversationKey)
+  emits('conversationSelected', props.conversationKey)
+}
+
+function deleteConversation() {
+  conversations.deleteConversation(props.conversationKey)
 }
 </script>
+
+<style scoped></style>
