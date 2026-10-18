@@ -33,7 +33,7 @@
             </div>
             <ThumbnailPreviewStrip
               class="group-open/details:hidden self-center"
-              :items="imageGroup.thumbnailImages"
+              :items="imageGroup.previewImages"
             />
           </summary>
 
@@ -249,11 +249,13 @@ const imagesByDay = computed(() => {
     groups.get(dateKey)!.images.push(image)
   }
 
+  // ⚡ Bolt Performance Optimization: Memoize preview images in computed property
+  // Why: Prevents creating a new array reference on every render cycle in v-for loop, avoiding O(N) render thrashing of the ThumbnailPreviewStrip component.
   return Array.from(groups.entries()).map(([dateKey, value]) => ({
     dateKey,
     label: value.label,
     images: value.images,
-    thumbnailImages: value.images.filter((item) => item.type === 'image').reverse(),
+    previewImages: value.images.filter((item) => item.type === 'image').reverse(),
   }))
 })
 
