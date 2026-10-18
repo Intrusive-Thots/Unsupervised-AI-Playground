@@ -342,6 +342,7 @@ const autoScrollEnabled = ref(true)
 const showScrollButton = ref(false)
 const chatPanel = ref<HTMLElement | null>(null)
 
+
 const activeConversation = computed(() => openAiCompatibleChat.messages)
 const showThinkingTextPerMessageId = reactive<Record<string, boolean>>({})
 const showRagSourcePerMessageId = reactive<Record<string, boolean>>({})
