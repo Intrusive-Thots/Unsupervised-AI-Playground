@@ -6,15 +6,15 @@
         ? 'border-primary bg-muted hover:bg-muted/80'
         : 'border-transparent bg-muted hover:bg-muted/80'
     "
-    @click="selectConversation"
+    @click="selectConversation(conversationKey)"
   >
     <div class="flex items-center justify-between w-full">
       <span class="truncate text-sm text-foreground">
-        {{ conversationTitle }}
+        {{ computedConversationTitle }}
       </span>
       <DropdownMenu
-        :open="menuOpenKey === conversationKey"
-        @update:open="(open) => onMenuOpenChange(open)"
+        :open="isMenuOpen"
+        @update:open="onMenuOpenChange"
       >
         <DropdownMenuTrigger as-child>
           <Button variant="ghost" size="icon" class="h-6 w-6" @click.stop>
@@ -34,7 +34,7 @@
             v-model:open="renameDialogOpen"
             @update:open="
               (open) => {
-                if (!open) menuOpenKey = null
+                if (!open) isMenuOpen = false
               }
             "
           >
@@ -43,7 +43,7 @@
                 @select="
                   (e: Event) => {
                     e.preventDefault()
-                    openRenameDialog()
+                    openRenameDialog(conversationKey)
                   }
                 "
               >
@@ -94,7 +94,7 @@
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <ThumbnailPreviewStrip :items="images" />
+    <ThumbnailPreviewStrip :items="computedImages" />
   </div>
 </template>
 
@@ -140,7 +140,9 @@ const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
 
-const images = computed(() => {
+// ⚡ Bolt Performance Optimization: Extracted item into a child component and memoized image mapping
+// with a computed property to prevent O(N) render thrashing during v-for parent updates.
+const computedImages = computed(() => {
   const conversation = conversations.conversationList[props.conversationKey]
   if (!conversation) return []
   return conversation.flatMap((msg, msgIndex) =>
@@ -180,7 +182,7 @@ const images = computed(() => {
   )
 })
 
-const conversationTitle = computed(() => {
+const computedConversationTitle = computed(() => {
   const conversation = conversations.conversationList[props.conversationKey]
   if (!conversation || conversation.length === 0) {
     return 'New Conversation'
@@ -198,28 +200,24 @@ const conversationTitle = computed(() => {
   return titlePart ? titlePart.text.substring(0, 50) : 'New Conversation'
 })
 
-const menuOpenKey = ref<string | null>(null)
+const isMenuOpen = ref<boolean>(false)
 
 function onMenuOpenChange(open: boolean) {
-  menuOpenKey.value = open
-    ? props.conversationKey
-    : menuOpenKey.value === props.conversationKey
-      ? null
-      : menuOpenKey.value
+  isMenuOpen.value = open
 }
 
+// Rename dialog state
 const renameDialogOpen = ref(false)
 const renameTitle = ref('')
 
-function openRenameDialog() {
-  const existingTitle = conversationTitle.value
-  renameTitle.value = existingTitle ?? ''
+function openRenameDialog(_conversationKey: string) {
+  renameTitle.value = computedConversationTitle.value ?? ''
   renameDialogOpen.value = true
 }
 
 function cancelRename() {
   renameDialogOpen.value = false
-  menuOpenKey.value = null
+  isMenuOpen.value = false
 }
 
 function saveRename() {
@@ -227,12 +225,12 @@ function saveRename() {
   if (newTitle.length === 0) return
   conversations.renameConversationTitle(props.conversationKey, newTitle)
   renameDialogOpen.value = false
-  menuOpenKey.value = null
+  isMenuOpen.value = false
 }
 
-const selectConversation = () => {
-  conversations.activeKey = props.conversationKey
-  console.log('Selected conversation:', props.conversationKey)
+const selectConversation = (key: string) => {
+  conversations.activeKey = key
+  console.log('Selected conversation:', key)
   emits('conversationSelected')
 }
 </script>
