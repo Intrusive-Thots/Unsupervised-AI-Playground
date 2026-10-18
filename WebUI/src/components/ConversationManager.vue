@@ -7,9 +7,9 @@
     <div class="flex justify-end">
       <button
         @click="isHistoryVisible = !isHistoryVisible"
-        class="m-2 flex text-foreground focus-visible:ring-2 focus:outline-none focus-visible:ring-primary rounded-md"
-        :aria-label="isHistoryVisible ? (languages.COM_HIDE_HISTORY || 'Hide History') : (languages.COM_SHOW_HISTORY || 'Show History')"
-        :title="isHistoryVisible ? (languages.COM_HIDE_HISTORY || 'Hide History') : (languages.COM_SHOW_HISTORY || 'Show History')"
+        class="m-2 flex text-foreground"
+        :aria-label="isHistoryVisible ? languages.COM_HIDE_HISTORY : languages.COM_SHOW_HISTORY"
+        :title="isHistoryVisible ? languages.COM_HIDE_HISTORY : languages.COM_SHOW_HISTORY"
       >
         <img
           v-if="!isHistoryVisible"
@@ -190,6 +190,7 @@
 import { computed, ref } from 'vue'
 import { useConversations } from '@/assets/js/store/conversations'
 import { useTextInference } from '@/assets/js/store/textInference'
+import { useI18N } from '@/assets/js/store/i18n'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -227,7 +228,7 @@ import { useI18N } from '@/assets/js/store/i18n'
 
 const conversations = useConversations()
 const textInference = useTextInference()
-const { state: languages } = useI18N()
+const languages = useI18N().state
 const isHistoryVisible = ref(false)
 
 const menuOpenKey = ref<string | null>(null)
