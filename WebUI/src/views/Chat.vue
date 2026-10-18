@@ -426,6 +426,63 @@ function copyText(text: string) {
     .catch((e) => console.error('Error while copying text to clipboard', e))
 }
 
+// ⚡ Bolt Performance Optimization: Use static empty array to prevent returning new reference and forcing re-renders
+const EMPTY_MEDIA_ITEMS: MediaItem[] = []
+
+// Helper functions for tool rendering
+function getToolImages(part: ToolUIPart<AipgTools>): MediaItem[] {
+  if (!(part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit')) return EMPTY_MEDIA_ITEMS
+  const toolCallId = part.toolCallId
+  const progress = toolProgressMap[toolCallId]
+
+  // If we have progress tracking with images, use those
+  if (progress && progress.images.length > 0) {
+    return progress.images
+  }
+
+  // Otherwise, use output images if available
+  if (part.state === 'output-available') {
+    if (!part.output) return EMPTY_MEDIA_ITEMS
+    return part.output.images.map((img) => ({ ...img, state: 'done' as const }))
+  }
+
+  return EMPTY_MEDIA_ITEMS
+}
+
+function getToolProcessing(part: ToolUIPart<AipgTools>): boolean {
+  const toolCallId = part.toolCallId
+  const progress = toolProgressMap[toolCallId]
+
+  // If we have progress tracking, use that
+  if (progress) {
+    return progress.processing
+  }
+
+  // Otherwise, check part state
+  return part.state === 'input-streaming' || part.state === 'input-available'
+}
+
+function getToolCurrentState(part: ToolUIPart<AipgTools>): GenerateState | undefined {
+  const toolCallId = part.toolCallId
+  const progress = toolProgressMap[toolCallId]
+
+  if (progress && progress.currentState) {
+    return progress.currentState as GenerateState
+  }
+
+  return undefined
+}
+
+function getToolStepText(part: ToolUIPart<AipgTools>): string | undefined {
+  const toolCallId = part.toolCallId
+  const progress = toolProgressMap[toolCallId]
+
+  if (progress && progress.stepText) {
+    return progress.stepText
+  }
+
+  return undefined
+}
 
 // Watch for new tool calls starting to initialize their image tracking
 watch(

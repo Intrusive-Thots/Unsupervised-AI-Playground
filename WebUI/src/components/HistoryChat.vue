@@ -3,8 +3,8 @@
     <HistoryChatItem
       v-for="key in reversedConversationKeys"
       :key="key"
-      :conversation-key="key"
-      @conversation-selected="() => emits('conversationSelected')"
+      :conversationKey="key"
+      @select="selectConversation(key)"
     />
   </div>
 </template>

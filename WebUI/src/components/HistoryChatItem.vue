@@ -140,13 +140,19 @@ const emits = defineEmits<{
   (e: 'conversationSelected'): void
 }>()
 
-// ⚡ Bolt Performance Optimization: Extracted item into a child component and memoized image mapping
-// with a computed property to prevent O(N) render thrashing during v-for parent updates.
+const conversations = useConversations()
+
+// ⚡ Bolt Performance Optimization: Use static empty array to prevent returning new reference and forcing re-renders
+import type { AipgUiMessage } from '@/assets/js/store/conversations'
+
+// ⚡ Bolt Performance Optimization: Use static empty array to prevent returning new reference and forcing re-renders
+const EMPTY_IMAGES: { id: string; imageUrl: string }[] = []
+const EMPTY_CONVERSATION: AipgUiMessage[] = []
+
 const computedImages = computed(() => {
-  const conversation = conversations.conversationList[props.conversationKey]
-  if (!conversation) return []
-  return conversation.flatMap((msg, msgIndex) =>
-    msg.parts
+  const conversation = conversations.conversationList[props.conversationKey] || EMPTY_CONVERSATION
+  const images = conversation.flatMap((msg, msgIndex) =>
+    (msg.parts || [])
       .filter(
         (part) =>
           (part.type === 'tool-comfyUI' || part.type === 'tool-comfyUiImageEdit') &&
@@ -166,7 +172,7 @@ const computedImages = computed(() => {
             imageUrl: img.imageUrl ?? '',
           }))
         }
-        return []
+        return EMPTY_IMAGES
       })
       .flat()
       .filter(
@@ -180,6 +186,12 @@ const computedImages = computed(() => {
           typeof img.id === 'string',
       ),
   )
+
+  if (images.length === 0) {
+    return EMPTY_IMAGES
+  }
+
+  return images
 })
 
 const computedConversationTitle = computed(() => {
